@@ -125,7 +125,7 @@ const Context2D = CanvasRenderingContext2D.prototype;
 
 Context2D.drawImage = new Proxy(Context2D.drawImage, {
     apply(target, thisArgs, args) {
-        if (aimbotEnabled) {
+        if (aimbotEnabled || espEnabled) {
             const isPlayerImage =
                 args[0] instanceof HTMLCanvasElement &&
                 args.length === 9
