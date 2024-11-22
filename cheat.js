@@ -1,15 +1,13 @@
 
 // ==UserScript==
 // @name         Surviv.IO Aimbot, ESP & X-Ray
-// @namespace    https://greasyfork.org/en/users/662330-zertalious
+// @namespace    https://greasyfork.org
 // @version      0.0.4
 // @description  Aimbot and ESP for surviv.io. Locks the aim to the nearest player and shows lines between nearby players. Removes ceilings from buildings and let's you see inside them too.
-// @author       Zertalious (Zert)
+// @author       Zertalious (Zert) && modified by waltertang27
 // @match        *://survev.io/*
 // @grant        none
 // @run-at       document-start
-// @downloadURL https://update.greasyfork.org/scripts/439241/SurvivIO%20Aimbot%2C%20ESP%20%20X-Ray.user.js
-// @updateURL https://update.greasyfork.org/scripts/439241/SurvivIO%20Aimbot%2C%20ESP%20%20X-Ray.meta.js
 // ==/UserScript==
 
 let espEnabled = true;
@@ -254,12 +252,11 @@ window.requestAnimationFrame = new Proxy( window.requestAnimationFrame, {
                         const dx = targetPlayer.x - centerX;
                         const dy = targetPlayer.y - centerY;
                         console.log(`Targeting player at: X=${targetPlayer.x}, Y=${targetPlayer.y}, Distance=${minDistance}`);
-                        // Simulate mouse movement to aim at the target player
                         window.dispatchEvent(
                             new MouseEvent('mousemove', {
                                 clientX: mouseX + dx,
                                 clientY: mouseY + dy,
-                                dispatchedByMe: true, // Prevent infinite loops
+                                dispatchedByMe: true,
                             })
                         );
                     }
