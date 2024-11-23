@@ -3,8 +3,8 @@
 // @name         Surviv.IO Aimbot, ESP & X-Ray
 // @namespace    https://greasyfork.org
 // @version      0.0.4
-// @description  Aimbot and ESP for surviv.io. Locks the aim to the nearest player and shows lines between nearby players. Removes ceilings from buildings and let's you see inside them too.
-// @author       Zertalious (Zert) && modified by waltertang27
+// @description  Aimbot and ESP for surviv.io. Locks the aim to the nearest player and shows lines between nearby players. Removes ceilings from buildings and let's you see inside them too. Added lines to items.
+// @author       waltertang27
 // @match        *://survev.io/*
 // @grant        none
 // @run-at       document-start
@@ -13,6 +13,8 @@
 let espEnabled = true;
 let aimbotEnabled = true;
 let xrayEnabled = true;
+let findScopeEnabled = true;
+
 
 Object.defineProperty( Object.prototype, 'textureCacheIds', {
 	set( value ) {
@@ -25,6 +27,7 @@ Object.defineProperty( Object.prototype, 'textureCacheIds', {
 
 			value.push = new Proxy( value.push, {
 				apply( target, thisArgs, args ) {
+                    console.log("test", args, args[0]);
 
 					if ( args[ 0 ].indexOf( 'ceiling' ) > - 1 ) {
 
@@ -91,6 +94,7 @@ HTMLCanvasElement.prototype.getContext = new Proxy( HTMLCanvasElement.prototype.
 } );
 
 const players = [];
+const scopes = [];
 
 let radius;
 
@@ -114,6 +118,7 @@ window.addEventListener( 'keyup', function ( event ) {
 		case 'N' : espEnabled = ! espEnabled; break;
 		case 'B' : aimbotEnabled = ! aimbotEnabled; break;
 		case 'H' : xrayEnabled = ! xrayEnabled; break;
+        case 'J' : findScopeEnabled = ! findScopeEnabled; break;
 
 	}
 
@@ -125,6 +130,7 @@ const Context2D = CanvasRenderingContext2D.prototype;
 
 Context2D.drawImage = new Proxy(Context2D.drawImage, {
     apply(target, thisArgs, args) {
+        //console.log("test", target, thisArgs, args);
         if (aimbotEnabled || espEnabled) {
             const isPlayerImage =
                 args[0] instanceof HTMLCanvasElement &&
@@ -139,9 +145,9 @@ Context2D.drawImage = new Proxy(Context2D.drawImage, {
             && args[8] == 284;
 
             if (isPlayerImage) {
-                console.log('important info:', args);
+                //console.log('important info:', target, thisArgs, args);
                 const { a, b, e, f } = thisArgs.getTransform();
-                console.log('coordinates', a,b,e,f);
+                //console.log('coordinates', a,b,e,f);
 
                 // Calculate the player's position on the canvas
                 const playerX = e;
@@ -162,6 +168,32 @@ Context2D.drawImage = new Proxy(Context2D.drawImage, {
                 //console.log('Player detected at:', playerX, playerY);
             }
         }
+
+        if (findScopeEnabled) {
+            if (args[0] instanceof HTMLCanvasElement) {
+                //console.log("item", target, thisArgs, args);
+                const ctx = args[0].getContext('2d');
+                //console.log("test", args[0].toDataURL());
+            }
+           const isScopeItem =
+                args[0] instanceof HTMLCanvasElement
+                && args.length === 9
+                //&& args[3] == 70
+                //&& args[4] == 71
+                //&& args[5] == -140
+                //&& args[6] == -140
+                //&& args[7] == 280
+                //&& args[8] >= 285 && args[8] <= 300;
+           && args[8] == 292;
+           //&& args[8] == 272;
+            if (isScopeItem) {
+                //console.log("found", target, thisArgs, args);
+                const {a, b, e, f} = thisArgs.getTransform();
+                if (!scopes.find(scope => scope.x === e && scope.y === f)) {
+                    scopes.push({ x: e, y: f });
+                }
+            }
+        }
         // Proceed with the original drawImage call
         return Reflect.apply(target, thisArgs, args);
     }
@@ -176,6 +208,7 @@ window.requestAnimationFrame = new Proxy( window.requestAnimationFrame, {
 			apply( target, thisArgs, args ) {
 
 				players.length = 0;
+                scopes.length = 0;
 
 				Reflect.apply( ...arguments );
 
@@ -184,7 +217,8 @@ window.requestAnimationFrame = new Proxy( window.requestAnimationFrame, {
 				const array = [
 					[ '[B] Aimbot', aimbotEnabled ],
 					[ '[N] ESP', espEnabled ],
-					[ '[H] X-Ray', xrayEnabled ]
+					[ '[H] X-Ray', xrayEnabled ],
+                    [ '[J] Show nearby items', findScopeEnabled ]
 				];
 
 				const fontSize = 20;
@@ -207,9 +241,9 @@ window.requestAnimationFrame = new Proxy( window.requestAnimationFrame, {
 				ctx.globalAlpha = 1;
 
 				ctx.lineWidth = 5;
-				ctx.strokeStyle = 'red';
 
 				if ( espEnabled ) {
+                    ctx.strokeStyle = 'red';
 
 					const centerX = ctx.canvas.width / 2;
 					const centerY = ctx.canvas.height / 2;
@@ -226,6 +260,29 @@ window.requestAnimationFrame = new Proxy( window.requestAnimationFrame, {
 						ctx.moveTo( centerX, centerY );
 
 						ctx.lineTo( player.x, player.y );
+
+					}
+
+					ctx.stroke();
+
+				}
+                if ( findScopeEnabled ) {
+                    ctx.strokeStyle = 'blue';
+
+					const centerX = ctx.canvas.width / 2;
+					const centerY = ctx.canvas.height / 2;
+
+					ctx.beginPath();
+
+					for ( let i = 0; i < scopes.length; i ++ ) {
+						const scope = scopes[ i ];
+                        if (scope.x == centerX && scope.y == centerY) {
+                            continue;
+                        }
+
+						ctx.moveTo( centerX, centerY );
+
+						ctx.lineTo( scope.x, scope.y );
 
 					}
 
@@ -251,7 +308,7 @@ window.requestAnimationFrame = new Proxy( window.requestAnimationFrame, {
                     if (targetPlayer) {
                         const dx = targetPlayer.x - centerX;
                         const dy = targetPlayer.y - centerY;
-                        console.log(`Targeting player at: X=${targetPlayer.x}, Y=${targetPlayer.y}, Distance=${minDistance}`);
+                        //console.log(`Targeting player at: X=${targetPlayer.x}, Y=${targetPlayer.y}, Distance=${minDistance}`);
                         window.dispatchEvent(
                             new MouseEvent('mousemove', {
                                 clientX: mouseX + dx,
